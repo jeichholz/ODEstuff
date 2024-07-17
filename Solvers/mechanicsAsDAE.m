@@ -147,7 +147,7 @@ function [soln]=mechanicsAsDAE(DEs,PositionConstraints,VelocityConstraints,tspan
 
     %Solve for what you can symbolically. It is nice to do it symbolically
     %in order to warn the user if there are multiple feasible choices. 
-    ICsoln=solve(specificConstraints);
+    ICsoln=solve(specificConstraints,'Real',1);
     
     %It is possible that ICsoln has no solutions in some fields, which is
     %bad, or multiple solutions in some fields, in which case we need to
@@ -164,16 +164,16 @@ function [soln]=mechanicsAsDAE(DEs,PositionConstraints,VelocityConstraints,tspan
     [Y0,Y0Fixed]=structToVec({ICsoln,ICstruct},firstOrderVarToIdx);
 
     %Use mass-matrix form for solving the ODE. 
-    [M,F] = massMatrixForm(firstOrderSystem,firstOrderFuns);
+    [Msym,Fsym] = massMatrixForm(firstOrderSystem,firstOrderFuns);
 
     %For some reason, when the inputs are given as functions like x, rather
     %than x(t), it becomes impossible to use the standard odeFunction to
     %turn M,F into matlab functions.  Convert to symVars rather than
     %anything involving names that even look like functions.  
-    M=symFunsToSymVars(M);
+    M=symFunsToSymVars(Msym);
     M = matlabFunction(M, "Vars",{sym("t"),firstOrderVars});
 
-    F=symFunsToSymVars(F);
+    F=symFunsToSymVars(Fsym);
     F =matlabFunction(F, "Vars",{sym("t"),firstOrderVars});
 
     implicitForm=@(t,y,yp) M(t,y)*yp-F(t,y);
