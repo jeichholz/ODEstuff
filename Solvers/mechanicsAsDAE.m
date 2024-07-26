@@ -1,4 +1,4 @@
-function [soln]=mechanicsAsDAE(DEs,PositionConstraints,VelocityConstraints,tspan,ics,hints,doPlot,doDiagnostics)
+function [soln]=mechanicsAsDAE(DEs,PositionConstraints,VelocityConstraints,tspan,ics,hints,doPlot,doDiagnostics,solverChoice)
 %function [soln]=mechanicsAsDAE(DEs,PositionConstraints,VelocityConstraints,vars,tspan,ics,hints,doPlot)
 %
 %Solve a DAE describing some kind of rigid-body motion.  This is purely
@@ -44,7 +44,10 @@ function [soln]=mechanicsAsDAE(DEs,PositionConstraints,VelocityConstraints,tspan
 %doDiagnositics -- Options, with default value 1.  If true, then print
 %diagnostic information as you proceed. 
 %
-%
+%solverChoice -- Optional.  Set to one of "ode15i", "ode23t", or "ode15s".
+%Default value is ode15s. 
+
+
 %OUTPUTS
 %
 %soln -- a structure with a field for every calculated function.
@@ -83,6 +86,16 @@ function [soln]=mechanicsAsDAE(DEs,PositionConstraints,VelocityConstraints,tspan
     if ~exist("doDiagnostics","var") || isempty(doDiagnostics)
         doDiagnostics=1;
     end
+    
+    if ~exist("solverChoice","var")||isempty(solverChoice)
+        solverChoice="ode15s";
+    else
+        validSolverChoices={'ode15s','ode23t','ode15i'};
+        if ~ismember(solverChoice,validSolverChoices)
+            error('Solver choice, %s, must be one of: %s.\n',solverChoice,sprintf("%s ",validSolverChoices{:}));
+        end
+    end
+
 
     %Turn the position constraints into two constraints each, and the
     %velocity constraints into one each; 
@@ -192,10 +205,15 @@ function [soln]=mechanicsAsDAE(DEs,PositionConstraints,VelocityConstraints,tspan
     %Ok, solve!
     opt = odeset('Mass', M,'RelTol', 10.0^(-7), 'AbsTol' , 10.0^(-7),'InitialSlope',YP0);
 
-    %[tSol,ySol]=ode15i(implicitForm,[t0,tmax],Y0,YP0,opt);
-    %[tSol,ySol] = ode23t(F, [t0, tmax], Y0, opt);
-    [tSol,ySol] = ode15s(F, [t0, tmax], Y0, opt);
-
+    if string(solverChoice)=='ode15i'
+        dfprintf('Using ode15i solver.\n')
+        [tSol,ySol]=ode15i(implicitForm,[t0,tmax],Y0,YP0,opt);
+    elseif string(solverChoice)=='ode23t'
+        dfprintf('using ode23t solver.\n')
+        [tSol,ySol] = ode23t(F, [t0, tmax], Y0, opt);
+    elseif string(solverChoice)=='ode15s'
+        [tSol,ySol] = ode15s(F, [t0, tmax], Y0, opt);
+    end
 
     soln=struct();
     soln.t=tSol;
