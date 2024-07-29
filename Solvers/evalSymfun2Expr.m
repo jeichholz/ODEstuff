@@ -1,7 +1,7 @@
 function expr=evalSymfun2Expr(symfun)
     if class(symfun)=="symfun"
-        %expr=formula(symfun);
-        expr=symfun("t");
+        var=symvar(symfun);
+        expr=symfun(var);
     else
         expr=symfun;
     end
