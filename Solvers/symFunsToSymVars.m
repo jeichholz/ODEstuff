@@ -1,24 +1,38 @@
-function [expr,renamedFunctions,renamedStrings]=funsToSyms(expr,maxorder)
-
-    if ~exist('maxorder','var') || isempty(maxorder)
-        maxorder=5;
-    end
+function [expr,funs2vars,vars2funs,diffOrder,diffBase]=symFunsToSymVars(expr)
 
     if isa(expr,"symfun")
         expr=formula(expr);
     end
 
-    %Find the symfuns. 
-    funlist=findSymType(expr,"diff");
-
-    renamedFunctions=dictionary();
-    renamedStrings=dictionary();
+    funs2vars=dictionary();
+    vars2funs=dictionary();
+    diffOrder=dictionary();
+    diffBase=dictionary();
     
     expr=mapSymType(expr,"diff",@renamingDiffs);
 
     expr=mapSymType(expr,"symfun",@renamingSymFuns);
 
+    if funs2vars.isConfigured
+        baseFuns=diffBase.values;
+        for ff = reshape(baseFuns,1,[])
+            if ~ismember(ff,vars2funs.keys)
+                g=symfun(str2sym([char(ff),'(t)']),str2sym('t'));
+                renamingSymFuns(formula(g));
+            else
+                g=vars2funs(ff);
+            end
+            for i=1:diffOrder(ff)
+                if ~ismember(diff(g,i),funs2vars.keys)
+                    renamingDiffs(formula(diff(g,i)));
+                end
+            end
+        end
+    end
 
+    function out=generalRenamer(A)
+
+    end
 
     function out=renamingDiffs(A)
             %Find the name of the function which we are differentiating. 
@@ -35,8 +49,16 @@ function [expr,renamedFunctions,renamedStrings]=funsToSyms(expr,maxorder)
            
             %Now make the string representation. 
             out=['D',char(fname),repmat('t',1,order)];
-            renamedFunctions(A)=out;
-            renamedStrings(out)=A;
+            sout=sym(out);
+            funs2vars(A)=sout;
+            vars2funs(sout)=A;
+            basefun=sym(fname);
+            if ~diffOrder.isConfigured || ~ismember(basefun,diffOrder.keys)
+                diffOrder(basefun)=order;
+            else
+                diffOrder(basefun)=max(diffOrder(basefun),order);
+            end
+            diffBase(sout)=basefun;
     end
 
     function out=renamingSymFuns(A)
@@ -78,12 +100,24 @@ function [expr,renamedFunctions,renamedStrings]=funsToSyms(expr,maxorder)
             %This case is easy.  We let symFunType get the name for us and
             %we are done. 
             out=str;
+            order=0;
+            fname=str;
         end
+        sout=sym(out);
+        
+        funs2vars(A)=sout;
+        vars2funs(sout)=A;
+        basefun=sym(fname);
+        if ~diffOrder.isConfigured || ~ismember(basefun,diffOrder.keys)
+            diffOrder(basefun)=order;
+        else
+            diffOrder(basefun)=max(diffOrder(basefun),order);
+        end
+        diffBase(sout)=basefun;
 
-        renamedFunctions(A)=out;
-        renamedStrings(out)=A;
+
+
     end
-
 
 end
 
