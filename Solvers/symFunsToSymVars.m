@@ -5,7 +5,7 @@ function [expr,funs2vars,vars2funs,diffOrder,diffBase]=symFunsToSymVars(expr)
     end
     
     k=sym("z");
-    F=symfun("f(z)",k)
+    F=symfun("f(z)",k);
     
 
     funs2vars=dictionary();

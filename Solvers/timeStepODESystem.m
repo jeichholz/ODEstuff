@@ -94,6 +94,25 @@ function soln=timeStepODESystem(ODESystem,tspan,InitialConditions,PostProcessFun
     end
     evalRHString=[evalRHString,');'];
 
+    %Now, unlike all other second derivatives, all second derivatives of
+    %the state variables won't be included in the PP equations. So if our
+    %state variables are theta, theta', phi, phi', there are no PP
+    %equations for theta'' and phi'', because those are in the governing
+    %DEs.  Nevertheless, Simon says we should add that information to the
+    %solution structure, because acceleration is frequently of interest to
+    %engineers. So regardless of whether there are PP equations or not,
+    %fill in these higher derivatives using the DEs. 
+    
+    DEs=symFunsToSymVars(ODESystem);
+    for i=1:numel(DEs)
+        LH=lhs(DEs(i));
+        RH=matlabFunction(rhs(DEs(i)),'vars',{'t',ICstructnames{:}});
+        val=eval(evalRHString);
+        soln=setfield(soln,string(LH),val);
+    end
+
+
+
     %Create a new RH for each different PP equation, and evaluate. 
     if exist("PostProcessFunctions","var") && ~isempty(PostProcessFunctions)
         PP=symFunsToSymVars(PostProcessFunctions);
