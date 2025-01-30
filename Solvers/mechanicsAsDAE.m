@@ -148,32 +148,39 @@ function [soln]=mechanicsAsDAE(DEs,PositionConstraints,VelocityConstraints,tspan
     end
 
     %You need to find initial conditions that satisfy the constraints that
-    %were spit out of reduceDAEtoODE. 
+    %we have.  If there are no constraints, well then just use the initial
+    %conditions. 
 
-    specificConstraints=constraints;
+    if ~isempty(constraints)
+        specificConstraints=constraints;
 
-    %ASSUMES THE TIME VARIABLE IS NAMED t
-    specificConstraints=subs(specificConstraints,"t",t0);
+        %ASSUMES THE TIME VARIABLE IS NAMED t
+        specificConstraints=subs(specificConstraints,"t",t0);
 
-    %Substitute the given initial conditions into the constraints. 
-    specificConstraints=structsubs(specificConstraints,ICstruct);
+        %Substitute the given initial conditions into the constraints.
+        specificConstraints=structsubs(specificConstraints,ICstruct);
 
-    %Solve for what you can symbolically. It is nice to do it symbolically
-    %in order to warn the user if there are multiple feasible choices. 
-    ICsoln=solve(specificConstraints,'Real',1);
-    
-    %It is possible that ICsoln has no solutions in some fields, which is
-    %bad, or multiple solutions in some fields, in which case we need to
-    %look at the hints to decide or decide arbitrarily.  Deal with that. 
-    ICsoln=selectIC(ICsoln,hintsStruct);
+        %Solve for what you can symbolically. It is nice to do it symbolically
+        %in order to warn the user if there are multiple feasible choices.
+        ICsoln=solve(specificConstraints,'Real',1);
 
-    %Now we have satisfied the initial constraints of the system, however,
-    %that might not have pinned down all of the necessary initial
-    %conditions, like unknown forces which will only show up in the DEs
-    %themselves. First, build a partial initial condition vector out of the
-    %ICs that we were given and that we determined in order to be feasible.
-    %Then, use decic to find anything else that we need. 
-    
+        %It is possible that ICsoln has no solutions in some fields, which is
+        %bad, or multiple solutions in some fields, in which case we need to
+        %look at the hints to decide or decide arbitrarily.  Deal with that.
+        ICsoln=selectIC(ICsoln,hintsStruct);
+
+        %Now we have satisfied the initial constraints of the system, however,
+        %that might not have pinned down all of the necessary initial
+        %conditions, like unknown forces which will only show up in the DEs
+        %themselves. First, build a partial initial condition vector out of the
+        %ICs that we were given and that we determined in order to be feasible.
+        %Then, use decic to find anything else that we need.
+    else
+        %If there were no constraints, then the ICsoln should just be an
+        %empty struct.
+        ICsoln=struct();
+    end
+
     [Y0,Y0Fixed]=structToVec({ICsoln,ICstruct},firstOrderVarToIdx);
 
     %Use mass-matrix form for solving the ODE. 

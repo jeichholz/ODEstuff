@@ -1,4 +1,4 @@
-function [systemOfODEs,postProcessingEqns]=analyzeSystem(DEs,positionConstraints,velocityConstraints,...
+function [systemOfODEs,postProcessingEqns]=generateGoveringDEs(DEs,positionConstraints,velocityConstraints,...
     stateVariables,parameters,doDiagnostics)
 %function [systemOfODEs,postProcessingEqns]=analyzeSystem(DEs,positionConstraints,velocityConstraints, ...
 %    unknownFunctions,stateVariables)
@@ -122,7 +122,7 @@ function [systemOfODEs,postProcessingEqns]=analyzeSystem(DEs,positionConstraints
         stateVariables=evalSymfun2Expr(stateVariables);
 
         if numel(stateVariables) ~= numstatevarformula
-            warning('\nWarning.  This system will need to be expressed in terms of %d paramters.  You have provided %d.\n',numstatevarformula,numel(stateVariables));
+            warning('\nWarning.  This system will need to be expressed in terms of %d state variables.  You have provided %d.\n',numstatevarformula,numel(stateVariables));
         end
 
         soln=solveInTermsOf(system,symFunsToSymVars(stateVariables));
@@ -147,12 +147,17 @@ function [systemOfODEs,postProcessingEqns]=analyzeSystem(DEs,positionConstraints
         %The LHS (second derivatives) are now in systemOfODESLHS and
         %postProcessingLHS.  Now just build the equations. 
         for i=1:numel(systemOfODELHS)
-            systemOfODEs(end+1,1)=systemOfODELHS(i)==simplify(selectBranchOrCrash(soln,systemOfODELHS(i)));
+            if numel(systemOfODELHS)<=2
+                systemOfODEs(end+1,1)=systemOfODELHS(i)==simplify(selectBranchOrCrash(soln,systemOfODELHS(i)));
+            else
+                systemOfODEs(end+1,1)=systemOfODELHS(i)==selectBranchOrCrash(soln,systemOfODELHS(i));
+            end
         end
 
         for i=1:numel(postProcessingEqnsLHS)
-            postProcessingEqns(end+1,1)=postProcessingEqnsLHS(i)==simplify(selectBranchOrCrash(soln,postProcessingEqnsLHS(i)));
+            postProcessingEqns(end+1,1)=postProcessingEqnsLHS(i)==selectBranchOrCrash(soln,postProcessingEqnsLHS(i));
         end
+
 
         %Now reconstitute back to symfuns, not symvars.
         systemOfODEs=subs(systemOfODEs,varsToFuns.keys,varsToFuns.values);

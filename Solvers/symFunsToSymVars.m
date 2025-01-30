@@ -3,6 +3,10 @@ function [expr,funs2vars,vars2funs,diffOrder,diffBase]=symFunsToSymVars(expr)
     if isa(expr,"symfun")
         expr=formula(expr);
     end
+    
+    k=sym("z");
+    F=symfun("f(z)",k)
+    
 
     funs2vars=dictionary();
     vars2funs=dictionary();
